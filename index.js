@@ -57,7 +57,7 @@ mongoose.connect('mongodb+srv://prasathdongame:prasathdongame@cluster0.mvzxacl.m
 
 
 app.get('/', (req, res) => {
-  res.json('hello'),
+  res.json('hello dragon'),
     console.log('hello');
 
 });
