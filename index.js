@@ -67,7 +67,7 @@ app.get('/', (req, res) => {
 //create a shopkeeper for register
 
 
-app.post('/shopkeeper/register/', async (req, res) => {
+app.post('/shopkeeper/register', async (req, res) => {
   try {
     console.log(req.body);
     const shopkeeperCreate = await Shopkeeper({
