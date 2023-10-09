@@ -427,7 +427,7 @@ app.post('/upload', authenticateToken, upload/*.single('profile')*/, async (req,
     }
   }
 });
-
+      
 
 //User routes
 
