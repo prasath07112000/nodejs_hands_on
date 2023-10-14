@@ -37,9 +37,13 @@ const user_schema = new mongoose.Schema({
     type: String
     
   },
+  comment:[{
+    type: String,
+  }],
   labels:[{
     label:{
-    type: String
+    type: String,
+    unique: true,
     },
 }],
   /*address:[

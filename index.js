@@ -98,6 +98,7 @@ app.post('/shopkeeper/login', async (req, res) => {
     });
 
     const token = jwt.sign({ _id: shopkeeperCreate._id, email: shopkeeperCreate.email }, secretKey);
+    res.setHeader("token",token)
     res.status(200).json({ token: token });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -437,7 +438,8 @@ app.post('/users', async (req, res) => {
       name: req.body.name,
       email: req.body.email,
       password: req.body.password,
-      mobile: req.body.mobile
+      mobile: req.body.mobile,
+      comment: req.body.comment
     }).save()
     res.status(200).json(userCreate);
   } catch (error) {
@@ -463,6 +465,24 @@ app.post("/users/login", async (req, res) => {
 });
 
 
+//user to validate
+
+
+app.post('/users/validate', authenticateToken, async (req, res) => {
+  try {
+    const userList = await User.updateOne({
+      _id: req._id,
+    },
+    {$addToSet:{
+      comment: req.body.comment,
+    },
+    });
+
+    res.status(200).json(userList);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 //user details are list
 
 
@@ -514,11 +534,12 @@ app.get('/users/listall', async (req, res) => {
 
 app.post('/users/labels', authenticateToken, async (req, res) => {
   try {
-    const usersLabel = await User.findOneAndUpdate({
+
+    const usersLabel = await User.updateOne({
       _id: req._id
     }, {
-      $push: { labels: { label: req.body.label } }
-    });
+      $addToSet:{'labels.label': req.body.label }
+    },{new: true});
     res.status(200).json(usersLabel)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -567,7 +588,10 @@ app.post('/shopkeeper/users/label', async (req, res) => {
 
     const user = await User.findOneAndUpdate(
       { _id: req.body._id },
-      { $push: { labels: { label: req.body.label } } }
+      { $push: { labels: { label: req.body.label } } },
+      {
+        new: true,
+      }
     );
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -581,7 +605,10 @@ app.post('/shopkeeper/users/label', async (req, res) => {
 
     const shopkeeper = await Shopkeeper.findOneAndUpdate(
       { _id: req.body._id },
-      { $push: { labels: { label: req.body.label } } }
+      { $push: { labels: { label: req.body.label } } },
+      {
+        new: true,
+      }
     );
     if (!shopkeeper) {
       return res.status(404).json({ error: 'User not found' });
@@ -594,4 +621,318 @@ app.post('/shopkeeper/users/label', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 
+});
+
+
+//shopkeeper and user label for remove
+
+
+app.post('/shopkeeper/users/label/remove', async (req, res) => {
+  try {
+    //const{userId,shopkeeperId,userLabels,shopkeeperLabels} = req.body;
+
+    const user = await User.findOneAndUpdate(
+      { _id: req.body._id },
+      { $pull: { labels: { label: req.body.label } } },
+      {
+        new: true,
+      }
+    );
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+     
+
+
+    await user.save();
+
+
+
+    const shopkeeper = await Shopkeeper.findOneAndUpdate(
+      { _id: req.body._id },
+      { $pull: { labels: { label: req.body.label } } },
+      {
+        new: true,
+      }
+    );
+    if (!shopkeeper) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    await shopkeeper.save();
+
+    res.status(200).json({ message: 'label added successfully' , user, shopkeeper})
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+
+});
+
+
+//Array fillter concept is use for shopkeeper to add label array
+
+
+app.post('/shopkeeper/product/computer/label', /*authenticateTokenm,*/ async (req, res) => {
+  try {
+    const shopkeeperCreate = await Shopkeeper.updateOne({
+      _id: req.body._id
+    }, {
+      $push: {
+        'products.computer': {
+         label:req.body.label
+        },
+      },
+    },
+      { new: true }
+    );
+    res.status(200).json(shopkeeperCreate);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+//add shopkeeper label 
+
+
+app.post('/shopkeeper/product/computer/addlabel', /*authenticateToken,*/ async (req, res) => {
+  try {
+    //const { _id, monitor, labelToUpdate } = req.body;
+
+    const shopkeeperCreate = await Shopkeeper.findOneAndUpdate(
+      {
+        //_id:req.body._id,label: req.body.label,monitor: req.body.monitor
+        'products.computer':{$elemMatch: { _id:req.body._id } },
+      },
+      {
+        /*$set: {
+          'products.computer.$[elem].monitor': req.body.monitor,
+        },*/
+        $push: {
+          'products.computer.$[elem].label': req.body.label,
+        },
+      },
+      {
+        new: true,
+        arrayFilters: [{ 'elem._id': req.body._id }],
+      }
+    );
+
+    res.status(200).json(shopkeeperCreate);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//-------------------------or------------------------------------
+
+app.post('/shopkeeper/product/computer/addlabel2', /*authenticateToken,*/ async (req, res) => {
+
+    try {
+      const { _id, monitor, labelToUpdate } = req.body;
+  
+      const shopkeeper = await Shopkeeper.findOneAndUpdate(
+        {
+          'products.computer': {
+            $elemMatch: { _id: _id }
+          }
+        },
+        {
+          $set: {
+            'products.computer.$[elem].monitor': monitor
+          },
+          $push: {
+            'products.computer.$[elem].label': labelToUpdate
+          }
+        },
+        {
+          new: true,
+          arrayFilters: [{ 'elem._id': _id }]
+        }
+      );
+  
+      if (!shopkeeper) {
+        return res.status(404).json({ message: "Computer product not found" });
+      }
+  
+      res.status(200).json(shopkeeper);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+
+//apply to all computer product
+
+app.post('/shopkeeper/product/computer/shopkeepercomputerlabel', /* authenticateToken, */ async (req, res) => {
+  try {
+    const { _id, label } = req.body;
+
+    const shopkeeper = await Shopkeeper.findById(_id);
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: "_id not found" });
+    }
+
+    // Iterate through the computer products and add the label to all of them
+    shopkeeper.products.computer.forEach((product) => {
+      product.label.push(label);
+    });
+
+    await shopkeeper.save();
+
+    res.status(200).json({ message: "Label added to all computer products successfully" });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+//arrray filter method using to update label
+
+
+app.post('/shopkeeper/product/computer/addlabel3',/*authenticateToken,*/ async (req, res) => {
+  try {
+    const { _id, label, } = req.body;
+
+    const shopkeeperUpdated = await Shopkeeper.findOneAndUpdate(
+      { _id,},
+      {
+        $push: {
+          'products.computer.$[element].label': label,
+        },
+      },
+      {
+        new: true,
+        arrayFilters: [
+          { 'element._id':req.body._id },
+        ],
+      }
+    );
+
+    res.status(200).json(shopkeeperUpdated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//-----------------------------------------
+
+app.post('/shopkeeper/product/computer/addlabel4', /*authenticateToken,*/ async (req, res) => {
+  try {
+    const { _id, label, monitor } = req.body;
+
+    const shopkeeperUpdated = await Shopkeeper.findOneAndUpdate(
+      {
+        _id,
+        'products.computer.[0].monitor': monitor/*{$elemMatch: { monitor: monitor }}*/
+      },
+      {
+        $push: {
+          'products.computer.$[element].label': label,
+        },
+      },
+      {
+        new: true,
+        arrayFilters: [
+          { 'element._id': _id },
+        ],
+      }
+    );
+    console.log(shopkeeperUpdated)
+
+    res.status(200).json(shopkeeperUpdated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+//------------------------------------
+
+app.post('/shopkeeper/product/computer/addlabel5', /*authenticateToken,*/ async (req, res) => {
+  try {
+    const { _id, label } = req.body;
+
+    const shopkeeperUpdated = await Shopkeeper.findOneAndUpdate(
+      { _id, "products.computer.label": { $ne: label } }, // Ensure the label doesn't already exist
+      {
+        $push: {
+          "products.computer.$.label": label, // Use the correct positional operator
+        },
+      },
+      {
+        new: true,
+      }
+    );
+
+    if (!shopkeeperUpdated) {
+      return res.status(404).json({ error: "Shopkeeper not found or label already exists" });
+    }
+
+    res.status(200).json(shopkeeperUpdated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+//--------------------------------------
+
+/*app.post('/shopkeeper/product/computer/addlabel6', async (req, res) => {
+  try {
+    const { _id, label } = req.body;
+
+    const shopkeeper = await Shopkeeper.findOne({ _id });
+
+    if (!shopkeeper) {
+      return res.status(404).json({ error: "Shopkeeper not found" });
+    }
+
+    // Find the index of the computer product you want to update (assuming you have a unique identifier, e.g., modelno)
+    const computerIndex = shopkeeper.products.computer.findIndex(computerProduct => computerProduct.monitor === req.body.monitor);
+
+    if (computerIndex === -1) {
+      return res.status(404).json({ error: "Computer product not found" });
+    }
+
+    // Push the label to the computer product's label array
+    shopkeeper.products.computer[computerIndex].label.push(label);
+
+    // Save the updated document
+    const shopkeeperUpdated = await shopkeeper.save();
+
+    res.status(200).json(shopkeeperUpdated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});*/
+
+//------------------------------------------------
+
+app.post('/shopkeeper/product/computer/addlabel7', async (req, res) => {
+  try {
+    const { _id, label, monitor } = req.body;
+
+    const shopkeeperUpdated = await Shopkeeper.findOneAndUpdate(
+      { _id },
+      {
+        $push: {
+          'products.computer.$[elem].label': label,
+        },
+      },
+      {
+        new: true,
+        arrayFilters: [{ 'elem.monitor': monitor }],
+      }
+    );
+
+    if (!shopkeeperUpdated) {
+      return res.status(404).json({ error: "Shopkeeper not found or computer product not found" });
+    }
+
+    res.status(200).json(shopkeeperUpdated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });

@@ -39,7 +39,10 @@ const shopkeeperSchema = mongoose.Schema({
       },
       systemInformation: {
         type: String,
-      }
+      },
+      label:[{
+        type: String
+      }]
     }], // Define laptop as an array of laptopSchema objects
     computer: [{
       monitor: {
@@ -54,6 +57,9 @@ const shopkeeperSchema = mongoose.Schema({
       mouse: {
         type: String,
       },
+      label:[{
+        type: String,
+      }]
     }], // Define computer as an array of computerSchema objects
   },
 });
