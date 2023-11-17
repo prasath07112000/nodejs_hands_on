@@ -33,7 +33,7 @@ const CalculationResultSchema = new mongoose.Schema({
   // Add other properties based on your 'result' object structure if needed
 });
 
-const CalculationResult = mongoose.model('CalculationResult', CalculationResultSchema);
+const CalculationResult = mongoose.model('calculationResult', CalculationResultSchema);
 
 module.exports = CalculationResult;
 
