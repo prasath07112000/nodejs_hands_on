@@ -20,16 +20,70 @@ const shopkeeperSchema = mongoose.Schema({
   address: {
     type: String,
   },
+  startDate:{
+    type: Number,
+  },
+  endDate:{
+    type: Number,
+  },
   image: {
     data: String,
     contentType: String,
   },
+ timestamp:{
+    type: String
+  },
   labels: [{
     label: {
       type: String
-    },
+    }
+    
   }],
-  products: {
+  products:{
+    laptop:[{
+      laptopName: {
+        type: String
+      },
+      laptopPrice:{
+        type: String 
+      },
+      laptopSpecification:{
+        type: String,
+      },
+      status:{
+        type: Boolean,
+        default: true
+      },
+      count:{
+        type: Number,
+        default: 10
+      }
+    }],
+    computer:[{
+      computerName: {
+        type: String
+      },
+      computerPrice:{
+        type: String 
+      },
+      computerSpecification:{
+        type: String,
+      },
+      status:{
+        type: Boolean,
+        default: true
+      },
+      count:{
+        type: Number,
+        default: 10
+      }
+    }]
+  }
+},/*{ timestamps: true,}*/
+);
+
+  module.exports = mongoose.model("Shopkeeper", shopkeeperSchema);
+  /*products: {
     laptop: [{
       laptopname: {
         type: String,
@@ -62,7 +116,7 @@ const shopkeeperSchema = mongoose.Schema({
       }]
     }], // Define computer as an array of computerSchema objects
   },
-});
+});*/
 
-module.exports = mongoose.model("Shopkeeper", shopkeeperSchema);
+
 

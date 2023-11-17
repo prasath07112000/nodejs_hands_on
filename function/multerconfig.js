@@ -1,7 +1,7 @@
 const multer = require('multer');
 
 
-//const Storage = multer.memoryStorage({
+//const Storage = multer.memoryStorage({       //data: req.file.buffer,    buffer for memorystorage     
 const Storage = multer.diskStorage({
     //destination: './uplaod/images',
     destination: (req,file,cb)=>{

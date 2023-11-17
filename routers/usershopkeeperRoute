@@ -1,0 +1,146 @@
+const express = require('express');
+const router = express.Router();
+const User = require('../schema/user')
+const Shopkeeper = require('../schema/shopkeeper')
+const upload = require('../function/multerconfig')
+const jwt = require('jsonwebtoken');
+const secretKey = 'my_secret_key';
+const authenticateToken = require('../function/auth');
+module.exports = router;
+
+
+
+
+
+  //------------------user to shopkeeper status-------------------
+
+
+router.post('/user/status', async (req, res) => {
+    try {
+      //const{userId,shopkeeperId,userLabels,shopkeeperLabels} = req.body;
+  
+      const user = await User.findOneAndUpdate(
+        { _id: req.body._id },{$set:{
+  
+        }},{
+          new: true,
+        }
+  
+      );
+  
+      await user.save();
+  
+      const shopkeeper = await Shopkeeper.findOneAndUpdate(
+        { _id: req.body._id ,'products.laptop._id': req.body._id },
+        { $set: {  
+                  'products.laptop.$.status': false,
+                  'products.laptop.$.laptopName': req.body.laptopName,
+  
+                }
+         },
+        // {
+        //   $push: {
+        //     'products.laptop': {
+        //       laptopName: req.body.laptopName,
+        //       laptopPrice: req.body.laptopPrice,
+        //       status: false
+        //     }
+        //   }
+        // },
+        {
+          new: true,
+        }
+      );
+  
+  
+      await shopkeeper.save();
+  
+      res.status(200).json({ message: 'added successfully', user, shopkeeper })
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  
+  });
+  
+
+   // ---------------this method apply label to both user & shopkeeper-------------------
+
+
+router.post('/users/label', async (req, res) => {
+    try {
+      //const{userId,shopkeeperId,userLabels,shopkeeperLabels} = req.body;
+  
+      const user = await User.findOneAndUpdate(
+        { _id: req.body._id },
+        { $push: { labels: { label: req.body.label } } },
+        {
+          new: true,
+        }
+      );
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+  
+      await user.save();
+  
+      const shopkeeper = await Shopkeeper.findOneAndUpdate(
+        { _id: req.body._id },
+        { $push: { labels: { label: req.body.label } } },
+        {
+          new: true,
+        }
+      );
+      if (!shopkeeper) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+  
+      await shopkeeper.save();
+  
+      res.status(200).json({ message: 'label added successfully', user, shopkeeper })
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  
+  });
+  
+  
+  
+  //shopkeeper and user label for remove
+  
+  
+  router.post('/users/label/remove', async (req, res) => {
+    try {
+      //const{userId,shopkeeperId,userLabels,shopkeeperLabels} = req.body;
+  
+      const user = await User.findOneAndUpdate(
+        { _id: req.body._id },
+        { $pull: { labels: { label: req.body.label } } },
+        {
+          new: true,
+        }
+      );
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+  
+      await user.save();
+  
+      const shopkeeper = await Shopkeeper.findOneAndUpdate(
+        { _id: req.body._id },
+        { $pull: { labels: { label: req.body.label } } },
+        {
+          new: true,
+        }
+      );
+      if (!shopkeeper) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+  
+      await shopkeeper.save();
+  
+      res.status(200).json({ message: 'label added successfully', user, shopkeeper })
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  
+  });

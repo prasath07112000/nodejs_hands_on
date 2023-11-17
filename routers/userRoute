@@ -1,0 +1,129 @@
+const express = require('express');
+const router = express.Router();
+const User = require('../schema/user')
+const jwt = require('jsonwebtoken');
+const secretKey = 'my_secret_key';
+const authenticateToken = require('../function/auth');
+module.exports = router;
+
+
+
+
+router.post('/register', async (req, res) => {
+    try {
+      const userCreate = await User({
+        name: req.body.name,
+        email: req.body.email,
+        password: req.body.password,
+        mobile: req.body.mobile,
+        comment: req.body.comment
+      }).save()
+      res.status(200).json(userCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //Route for User Login
+  
+  
+  router.post("/login", async (req, res) => {
+    try {
+      const userCreate = await User.findOne({
+        email: req.body.email,
+        password: req.body.password,
+      });
+      const token = jwt.sign({ _id: userCreate.id, email: userCreate.email }, secretKey);
+      res.status(200).json({ token: token });
+    } catch (error) {
+      res.status(400).json({ error: error.message })
+    }
+  });
+  
+  
+  //user to validate
+  
+  
+  router.post('/validate', authenticateToken, async (req, res) => {
+    try {
+      const userList = await User.updateOne({
+        _id: req._id,
+      },
+        {
+          $addToSet: {
+            comment: req.body.comment,
+          },
+        });
+  
+      res.status(200).json(userList);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  //user details are list
+  
+  
+  router.post('/list', authenticateToken, async (req, res) => {
+    try {
+      const userList = await User.find({
+        _id: req._id,
+      });
+  
+      res.status(200).json(userList);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  // delete user 
+  
+  
+  router.post('/delete', authenticateToken, async (req, res) => {
+    try {
+      const user = await User.deleteOne(
+        {
+          _id: req._id
+        }
+      );
+      res.status(200).json(user);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  
+  //show all the user
+  
+  
+  router.get('/listall', async (req, res) => {
+    try {
+      const users = await User.find();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  
+  //User to upload label
+  
+  
+  router.post('/labels', authenticateToken, async (req, res) => {
+    try {
+  
+      const usersLabel = await User.updateOne({
+        _id: req._id
+      }, {
+        $addToSet: { 'labels.label': req.body.label }
+      }, { new: true });
+      res.status(200).json(usersLabel)
+    } catch (error) {
+      res.status(400).json({ error: error.message })
+    }
+  });
+  
+
+  
+  

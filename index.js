@@ -3,7 +3,13 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const User = require('./schema/user')
+const date = require('date-and-time');
+const moment = require('moment');
 
+//------------router------------
+const userRoute = require ("./routers/userRoute")
+const shopkeeperRoute = require("./routers/shopkeeperRoute")
+const usershopkeeperRoute = require("./routers/usershopkeeperRoute")
 
 //const multer = require('multer');
 //const path = require('path');
@@ -13,6 +19,7 @@ const upload = require('./function/multerconfig')
 //const upload = multer( {storage} )
 const Shopkeeper = require('./schema/shopkeeper'); // Import your User model
 const authenticateToken = require('./function/auth');
+const calculateIntervals = require('./function/date&time');
 const shopkeeper = require('./schema/shopkeeper');
 
 const secretKey = 'my_secret_key';
@@ -29,6 +36,8 @@ app.use(bodyParser.json())
 
 app.use(express.urlencoded({ extended: true }))
 
+app.use("/users", userRoute);
+app.use("/shopkeeper", shopkeeperRoute, usershopkeeperRoute)
 
 // Start the server
 
@@ -64,323 +73,6 @@ app.get('/', (req, res) => {
 
 
 
-//create a shopkeeper for register
-
-
-app.post('/shopkeeper/register', async (req, res) => {
-  try {
-    console.log(req.body);
-    const shopkeeperCreate = await Shopkeeper({
-
-      shopname: req.body.shopname,
-      ownername: req.body.ownername,
-      email: req.body.email,
-      password: req.body.password,
-      mobile: req.body.mobile,
-      address: req.body.address
-
-    }).save()
-    res.status(200).json(shopkeeperCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-// shopkeeper for login
-
-
-app.post('/shopkeeper/login', async (req, res) => {
-  try {
-    const shopkeeperCreate = await Shopkeeper.findOne({
-      email: req.body.email,
-      password: req.body.password,
-    });
-
-    const token = jwt.sign({ _id: shopkeeperCreate._id, email: shopkeeperCreate.email }, secretKey);
-    res.setHeader("token",token)
-    res.status(200).json({ token: token });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//shopkeeper for update record
-
-
-app.post('/shopkeeper/update', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperCreate = await Shopkeeper.updateOne({
-      _id: req._id
-    }, {
-      $set: {
-        shopname: req.body.shopname,
-        address: req.body.address
-      }
-    })
-    res.status(200).json(shopkeeperCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//add shopkeeper product for laptop
-
-
-app.post('/shopkeeper/product/laptop/add', authenticateToken, async (req, res) => {
-  try {
-    //const shopkeeperId = req._id;
-    const shopkeeperCreate = await Shopkeeper.updateOne({
-      _id: req._id,
-      //email: req.email
-    }, {
-      $push: {
-        'products.laptop': {
-          laptopname: req.body.laptopname,
-          modelno: req.body.modelno,
-          systemInformation: req.body.systemInformation,
-        },
-      },
-    },
-      { new: true });
-
-    res.status(200).json(shopkeeperCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-// set operator to use laptop update
-
-
-app.post('/shopkeeper/product/laptop/set', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperCreate = await Shopkeeper.findOneAndUpdate(
-      {
-        _id: req._id,
-        'products.laptop._id': req.body._id // Replace 'products.[0]_id' with 'products.computer._id'
-      },
-      {
-        $set: {
-          'products.laptop.$.laptopname': req.body.laptopname,
-          //'products.laptop.$.modelno': req.body.modelno,
-          //'products.laptop.$.systemInformation': req.body.systemInformation,
-
-        },
-      },
-
-
-      {
-        new: true,
-      }
-    );
-
-    res.status(200).json(shopkeeperCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//add shopkeeper product for computer
-
-
-app.post('/shopkeeper/product/computer/add/', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperCreate = await Shopkeeper.updateOne({
-      _id: req._id,
-      //'products.computer._id':req.body._id,
-    }, {
-      $push: {
-        'products.computer': {
-          monitor: req.body.monitor,
-          keyboard: req.body.keyboard,
-          cpu: req.body.cpu,
-          mouse: req.body.mouse,
-        },
-      },
-    },
-      { new: true }
-    );
-    res.status(200).json(shopkeeperCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//set operator to use computrer object update
-
-
-app.post('/shopkeeper/product/computer/set', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperCreate = await Shopkeeper.findOneAndUpdate(
-      {
-        _id: req._id,
-        'products.computer._id': req.body._id // Replace 'products.[0]_id' with 'products.computer._id'
-      },
-      {
-        $set: {
-          'products.computer.$.monitor': req.body.monitor,
-          //'products.computer.$.keyboard': req.body.keyboard,
-          //'products.computer.$.mouse': req.body.mouse,
-          //'products.computer.$.cpu': req.body.cpu,
-        },
-      },
-
-      {
-        new: true,
-      }
-    );
-
-    res.status(200).json(shopkeeperCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//remove shopkeeper product for laptop
-
-
-app.post('/shopkeeper/product/laptop/del', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperCreate = await Shopkeeper.findOneAndUpdate({
-      _id: req._id
-    }, {
-      $pull: {
-        'products.laptop': {
-          laptopname: req.body.laptopname,
-          modelno: req.body.modelno,
-          systemInformation: req.body.systemInformation,
-        },
-
-      },
-    });
-
-    res.status(200).json(shopkeeperCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//remove shopkeeper product for computer
-
-
-app.post('/shopkeeper/product/computer/del', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperCreate = await Shopkeeper.findOneAndUpdate({
-      _id: req._id
-    }, {
-      $pull: {
-        'products.computer': {
-          monitor: req.body.monitor,
-          keyboard: req.body.keyboard,
-          cpu: req.body.cpu,
-          mouse: req.body.mouse,
-        }
-      }
-    });
-
-    res.status(200).json(shopkeeperCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//list for shopkeeper
-
-
-app.post('/shopkeeper/list', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperList = await Shopkeeper.find({
-      _id: req._id
-    });
-
-    res.status(200).json(shopkeeperList);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//list only laptop object from shopkeeper
-
-
-app.post('/shopkeeper/list/laptop', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperList = await Shopkeeper.findOne({
-      _id: req._id
-    }, {
-      "products.laptop": 1
-    });
-    console.log(shopkeeperList);
-
-    res.status(200).json({ message: "listlaptop successfully", data: shopkeeperList.products.laptop });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//list only computer object from shopkeeper
-
-
-app.post('/shopkeeper/list/computer', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperList = await Shopkeeper.findOne({
-      _id: req._id,
-    },
-      {
-        'products.computer': 1
-      });
-    console.log(shopkeeperList)
-    res.status(200).json(shopkeeperList.products.computer);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//delete for shopkeeper
-
-
-app.post('/shopkeeper/del', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperdel = await Shopkeeper.deleteOne(
-      {
-        _id: req._id
-      }
-    );
-    res.status(200).json(shopkeeperdel);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-//shopkeeper for label
-
-
-app.post('/shopkeeper/labels', authenticateToken, async (req, res) => {
-  try {
-    const shopkeeperLabel = await Shopkeeper.findOneAndUpdate({
-      _id: req._id
-    }, {
-      $push: { labels: { label: req.body.label } }
-    }, {
-      new: true,
-    });
-    res.status(200).json(shopkeeperLabel)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-});
 
 
 //upload the images 
@@ -401,538 +93,583 @@ const upload = multer({
 //app.use('/profile', express.static('uplaod/images'));
 
 
-app.post('/upload', authenticateToken, upload/*.single('profile')*/, async (req, res) => {
-  //console.log(req.file);
+//--------------------another route only shopkeeper to product count update-----------------
+
+app.post("/shopkeeper/update-laptop-count", async (req, res) => {
   try {
-    const shopkeeperCreate = await Shopkeeper.updateOne({
-      _id: req._id
-    }, {
-      $set: {
-        image: {
-          data: req.file.filename,
-          //data: req.file.buffer,    buffer for memorystorage       
-          contentType: req.file.mimetype
+    const { shopkeeperId, laptopName, increment, decrement } = req.body;
+
+    // Update the shopkeeper's laptop count accordingly
+    const shopkeeper = await Shopkeeper.findOneAndUpdate(
+      { _id: shopkeeperId, "products.laptop.laptopName": laptopName },
+      {
+        $inc: {
+          "products.laptop.$[elem].count": increment ? 1 : decrement ? -1 : 0,
         },
       },
-    });
-
-    console.log(req.file.buffer)
-    res.status(200).json({
-      message: "upload successfully", shopkeeperCreate,/* binarydata:req.file.buffer*/
-      // profile_url: `http://localhost:3000/profile/${req.file.filename}`
-    });
-  }
-  catch (error) {
-    if (!req.file) {
-      return res.status(400).send('No file uploaded.');
-    }
-  }
-});
-      
-
-//User routes
-
-app.post('/users', async (req, res) => {
-  try {
-    const userCreate = await User({
-      name: req.body.name,
-      email: req.body.email,
-      password: req.body.password,
-      mobile: req.body.mobile,
-      comment: req.body.comment
-    }).save()
-    res.status(200).json(userCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//Route for User Login
-
-
-app.post("/users/login", async (req, res) => {
-  try {
-    const userCreate = await User.findOne({
-      email: req.body.email,
-      password: req.body.password,
-    });
-    const token = jwt.sign({ _id: userCreate.id, email: userCreate.email }, secretKey);
-    res.status(200).json({ token: token });
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-});
-
-
-//user to validate
-
-
-app.post('/users/validate', authenticateToken, async (req, res) => {
-  try {
-    const userList = await User.updateOne({
-      _id: req._id,
-    },
-    {$addToSet:{
-      comment: req.body.comment,
-    },
-    });
-
-    res.status(200).json(userList);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-//user details are list
-
-
-app.post('/users/list', authenticateToken, async (req, res) => {
-  try {
-    const userList = await User.find({
-      _id: req._id,
-    });
-
-    res.status(200).json(userList);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-// delete user 
-
-
-app.post('/users/delete', authenticateToken, async (req, res) => {
-  try {
-    const user = await User.deleteOne(
       {
-        _id: req._id
+        new: true,
+        arrayFilters: [{ 'elem.laptopName': laptopName }],
       }
     );
-    res.status(200).json(user);
+
+    res.status(200).json({ message: "Product count updated successfully", shopkeeper });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 
-//show all the user
+//--------------user&shopkeeper to count---------------
 
 
-app.get('/users/listall', async (req, res) => {
+app.post("/shopkeeper/user/update-laptop-count", async (req, res) => {
   try {
-    const users = await User.find();
-    res.json(users);
+    const { userId, shopkeeperId, laptopName, increment, decrement } = req.body;
+
+    // Update the user's laptop count (decrement if decrement is true, increment if increment is true)
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $inc: {
+          //"products.laptop.$[element].count": increment ? 1 : decrement ? -1 : 0,
+        },
+      },
+      
+    );
+
+    // Update the shopkeeper's laptop count accordingly
+    const shopkeeper = await Shopkeeper.findOneAndUpdate(
+      { _id: shopkeeperId, "products.laptop.laptopName": laptopName },
+      {
+        $inc: {
+          "products.laptop.$[element].count": increment ? 1 : decrement ? -1 : 0,
+        },
+      },
+      {
+        new: true,
+        arrayFilters: [{ "element.laptopName": laptopName }],
+      }
+    );
+
+    res.status(200).json({ message: "Product count updated successfully", user, shopkeeper });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 
-//User to upload label
+//--------------another method for count route----------------
 
-
-app.post('/users/labels', authenticateToken, async (req, res) => {
+app.post("/shopkeeper/user/update-laptop-count2", async (req, res) => {
   try {
+    const { userId, laptopName, increment, decrement } = req.body;
 
-    const usersLabel = await User.updateOne({
-      _id: req._id
-    }, {
-      $addToSet:{'labels.label': req.body.label }
-    },{new: true});
-    res.status(200).json(usersLabel)
+    // Update the user's laptop count (decrement if decrement is true, increment if increment is true)
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $inc: {
+          //"products.laptop.$[element].count": increment ? 1 : decrement ? -1 : 0,
+        },
+      },
+      
+    );
+
+    // Update the shopkeeper's laptop count accordingly
+    const shopkeeper = await Shopkeeper.findOneAndUpdate(
+      {  "products.laptop.laptopName": laptopName },
+      {
+        $inc: {
+          "products.laptop.$[element].count": increment ? 1 : decrement ? -1 : 0,
+        },
+      },
+      {
+        new: true,
+        arrayFilters: [{ "element.laptopName": laptopName }],
+      }
+    );
+
+    res.status(200).json({ message: "Product count updated successfully", user, shopkeeper });
   } catch (error) {
-    res.status(400).json({ error: error.message })
+    res.status(500).json({ error: error.message });
   }
 });
 
 
-//both user and shopkeeper label to apply
+// ---------------another method for count if and else conditions------------------- 
 
 
-app.post('/shopkeeper/users/label/anothermethod', async (req, res) => {
+app.post("/shopkeeper/user/update-laptop-countifelse", async (req, res) => {
   try {
-    const { userId, shopkeeperId } = req.body;
-    const { userLabels, shopkeeperLabels} = req.body.label
+    const { userId, laptopName, action } = req.body;
+    let incrementValue = 0;
 
+    if (action === "increment") {
+      incrementValue = 1;
+    } else if (action === "decrement") {
+      incrementValue = -1;
+    }
+
+    // Update the user's laptop count
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $inc: {
+          //"products.laptop.$[elem].count": incrementValue
+        },
+      },
+      {
+        new: true,
+        //arrayFilters: [{ "elem.laptopName": laptopName }],
+      }
+    );
+
+    // Update the shopkeeper's laptop count accordingly
+    const shopkeeper = await Shopkeeper.findOneAndUpdate(
+      {  "products.laptop.laptopName": laptopName },
+      {
+        $inc: {
+          "products.laptop.$[elem].count": incrementValue
+        },
+      },
+      {
+        new: true,
+        arrayFilters: [{ "elem.laptopName": laptopName }],
+      }
+    );
+
+    res.status(200).json({ message: "Product count updated successfully", user, shopkeeper });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+//---------------another-------------------
+
+
+app.post("/shopkeeper/update-laptop-count2", async (req, res) => {
+  try {
+    const {userId, laptopName } = req.body;
 
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    user.labels = userLabels;
 
-    await user.save();
+    // Find the shopkeeper
+    const shopkeeper = await Shopkeeper.findOne({ "products.laptop.laptopName": laptopName });
 
-
-    const shopkeeper = await Shopkeeper.findById(shopkeeperId)
     if (!shopkeeper) {
-      return res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: "Shopkeeper not found" });
+      return;
     }
-    shopkeeper.labels = shopkeeperLabels;
+
+    // Get the current count of the laptop for the shopkeeper
+    const shopkeeperLaptopCount = shopkeeper.products.laptop.find(product => product.laptopName === laptopName).count;
+
+    // Check if there are enough products in stock to decrement
+    if (shopkeeperLaptopCount <= 0) {
+      res.status(400).json({ error: "Not enough products in stock" });
+      return;
+    }
+
+    // Calculate the new shopkeeper's laptop count (decrement)
+    const newShopkeeperLaptopCount = shopkeeperLaptopCount - 1;
+
+    // Update the shopkeeper's laptop count
+    const laptopIndex = shopkeeper.products.laptop.findIndex(product => product.laptopName === laptopName);
+    shopkeeper.products.laptop[laptopIndex].count = newShopkeeperLaptopCount;
+
     await shopkeeper.save();
 
-    res.status(200).json({ message: 'label added successfully' })
+    res.status(200).json({ message: "Shopkeeper's product count updated successfully", user, shopkeeper });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-
 });
 
-// another method
 
+// startDate and endDate
 
-app.post('/shopkeeper/users/label', async (req, res) => {
-  try {
-    //const{userId,shopkeeperId,userLabels,shopkeeperLabels} = req.body;
+app.post('/date-range', (req, res) => {
+  const startDate = "20231001";
+  const endDate = "20231130"; 
+  const interval = "7";
 
-    const user = await User.findOneAndUpdate(
-      { _id: req.body._id },
-      { $push: { labels: { label: req.body.label } } },
-      {
-        new: true,
-      }
-    );
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-     
-
-
-    await user.save();
-
-
-
-    const shopkeeper = await Shopkeeper.findOneAndUpdate(
-      { _id: req.body._id },
-      { $push: { labels: { label: req.body.label } } },
-      {
-        new: true,
-      }
-    );
-    if (!shopkeeper) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    await shopkeeper.save();
-
-    res.status(200).json({ message: 'label added successfully' , user, shopkeeper})
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  // Ensure that the required parameters are provided
+  if (!startDate || !endDate || !interval) {
+    return res.status(400).json({ error: 'Missing parameters' });
   }
 
-});
+  // Parse the input dates
+  const parsedStartDate = date.parse(startDate, 'YYYY-MM-DD');
+  const parsedEndDate = date.parse(endDate, 'YYYY-MM-DD');
 
-
-//shopkeeper and user label for remove
-
-
-app.post('/shopkeeper/users/label/remove', async (req, res) => {
-  try {
-    //const{userId,shopkeeperId,userLabels,shopkeeperLabels} = req.body;
-
-    const user = await User.findOneAndUpdate(
-      { _id: req.body._id },
-      { $pull: { labels: { label: req.body.label } } },
-      {
-        new: true,
-      }
-    );
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-     
-
-
-    await user.save();
-
-
-
-    const shopkeeper = await Shopkeeper.findOneAndUpdate(
-      { _id: req.body._id },
-      { $pull: { labels: { label: req.body.label } } },
-      {
-        new: true,
-      }
-    );
-    if (!shopkeeper) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    await shopkeeper.save();
-
-    res.status(200).json({ message: 'label added successfully' , user, shopkeeper})
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  if (!parsedStartDate || !parsedEndDate) {
+    return res.status(400).json({ error: 'Invalid date format' });
   }
 
-});
+  // Calculate the interval dates
+  const intervalDates = [];
+  let currentDate = parsedStartDate;
 
-
-//Array fillter concept is use for shopkeeper to add label array
-
-
-app.post('/shopkeeper/product/computer/label', /*authenticateTokenm,*/ async (req, res) => {
-  try {
-    const shopkeeperCreate = await Shopkeeper.updateOne({
-      _id: req.body._id
-    }, {
-      $push: {
-        'products.computer': {
-         label:req.body.label
-        },
-      },
-    },
-      { new: true }
-    );
-    res.status(200).json(shopkeeperCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+  while (currentDate <= parsedEndDate) {
+    intervalDates.push(date.format(currentDate, 'YYYY-MM-DD'));
+    currentDate = date.addDays(currentDate, parseInt(interval, 10));
   }
+
+  res.json({ intervalDates });
 });
 
+//startDate=2023-01-01&endDate=2023-02-28
 
-//add shopkeeper label 
+app.post('/date-range/2', (req, res) => {
+  const startDate = "2023-11-03";
+  const endDate = "2023-11-30";
 
-
-app.post('/shopkeeper/product/computer/addlabel', /*authenticateToken,*/ async (req, res) => {
-  try {
-    //const { _id, monitor, labelToUpdate } = req.body;
-
-    const shopkeeperCreate = await Shopkeeper.findOneAndUpdate(
-      {
-        //_id:req.body._id,label: req.body.label,monitor: req.body.monitor
-        'products.computer':{$elemMatch: { _id:req.body._id } },
-      },
-      {
-        /*$set: {
-          'products.computer.$[elem].monitor': req.body.monitor,
-        },*/
-        $push: {
-          'products.computer.$[elem].label': req.body.label,
-        },
-      },
-      {
-        new: true,
-        arrayFilters: [{ 'elem._id': req.body._id }],
-      }
-    );
-
-    res.status(200).json(shopkeeperCreate);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+  // Ensure that the required parameters are provided
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: 'Missing parameters' });
   }
-});
 
-//-------------------------or------------------------------------
+  // Parse the input dates using JavaScript's Date object
+  const parsedStartDate = new Date(startDate);
+  const parsedEndDate = new Date(endDate);
 
-app.post('/shopkeeper/product/computer/addlabel2', /*authenticateToken,*/ async (req, res) => {
+  // Check if the parsed dates are valid
+  if (isNaN(parsedStartDate) || isNaN(parsedEndDate)) {
+    return res.status(400).json({ error: 'Invalid date format' });
+  }
 
-    try {
-      const { _id, monitor, labelToUpdate } = req.body;
+  // You can perform any required date operations here
+
+  // For example, you can calculate the difference in days
+  const daysDifference = Math.floor(
+    (parsedEndDate - parsedStartDate) / (1000 * 60 * 60 * 24)
+  );
   
-      const shopkeeper = await Shopkeeper.findOneAndUpdate(
-        {
-          'products.computer': {
-            $elemMatch: { _id: _id }
-          }
-        },
-        {
-          $set: {
-            'products.computer.$[elem].monitor': monitor
-          },
-          $push: {
-            'products.computer.$[elem].label': labelToUpdate
-          }
-        },
-        {
-          new: true,
-          arrayFilters: [{ 'elem._id': _id }]
-        }
-      );
+  res.json({ daysDifference });
+  console.log("daysDifference:",daysDifference);
+});
+
+// // another method 2
+
+// app.post('/date-range/3', (req, res) => {
+//   const startDate = "2023/11/03";
+//   const endDate = "2023/11/30";
+
+//   // Ensure that the required parameters are provided
+//   if (!startDate || !endDate) {
+//     return res.status(400).json({ error: 'Missing parameters' });
+//   }
+
+//   // Parse the input dates using JavaScript's Date object
+//   //const parsedStartDate = new Date(startDate);
+//   //const parsedEndDate = new Date(endDate);
+
+//   // Check if the parsed dates are valid
+//   if (isNaN(startDate) || isNaN(endDate)) {
+//     return res.status(400).json({ error: 'Invalid date format' });
+//   }
+
+//   // You can perform any required date operations here
+
+//   // For example, you can calculate the difference in days
+//   const daysDifference = Math.floor(
+//     (endDate - startDate) / (1000 * 60 * 60 * 24)
+//   );
+
+//   res.json({ daysDifference });
+// });
+
+
+
+// start date and time and end date and time 
+
+
+app.post('/calculateDuration', (req, res) => {
+  try{
+  const { startDate, endDate, startTime, endTime } = req.body;
+
+  // Validate input
+  if (!startDate || !endDate || !startTime || !endTime) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  // Assuming date and time are in ISO format
+  const startDateTime = new Date(`${startDate}T${startTime}`);
+  const endDateTime = new Date(`${endDate}T${endTime}`);
+
+  // Calculate duration
+  const duration = endDateTime - startDateTime;
+
+  // Return the result
+  res.json({ duration: duration });
+} catch (error) {
+  res.status(400).json({ error: error.message });
+}
+});
+
+
+//another method
+
+
+app.post('/calculateDuration/1', (req, res) => {
+  try {
+    const { startDate, endDate, startTime, endTime, duration } = req.body;
+
+    // Validate input
+    if (!startDate || !endDate || !startTime || !endTime || !duration) {
+      throw new Error('Missing required fields');
+    }
+
+    // Convert date and time strings to Date objects
+    const startDateTime = new Date(`${startDate}T${startTime}`);
+    const endDateTime = new Date(`${endDate}T${endTime}`);
+
+    // Calculate duration in milliseconds
+    const durationInMilliseconds = duration * 60 * 1000; // Convert duration to milliseconds
+
+    // Split time range into 30-minute intervals
+    const intervals = [];
+    let currentDateTime = startDateTime;
+
+    while (currentDateTime < endDateTime) {
+      const nextDateTime = new Date(currentDateTime.getTime() + 30 * 60000); // 30 minutes in milliseconds
+      intervals.push({
+        start: currentDateTime.toISOString(),
+        end: nextDateTime.toISOString(),
+      });
+      currentDateTime = nextDateTime;
+    }
+
+    // Return the result
+    res.json({ intervals });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+//another method 2
+
+
+app.post('/calculateDuration/2', (req, res) => {
+  try {
+    const { startDate, endDate, startTime, endTime, duration } = req.body;
+
+    // Validate input
+    if (!startDate || !endDate || !startTime || !endTime || !duration) {
+      throw new Error('Missing required fields');
+    }
+
+    // Convert date and time strings to Date objects
+    const startDateTime = new Date(`${startDate}T${startTime}`);
+    const endDateTime = new Date(`${endDate}T${endTime}`);
+
+    // Debugging: Log the start and end date times
+    console.log('Start DateTime:', startDateTime);
+    console.log('End DateTime:', endDateTime);
+
+
+    // Calculate duration in milliseconds
+    const durationInMilliseconds = duration * 60 * 1000; // Convert duration to milliseconds
+
+    // Split time range into 30-minute intervals
+    const intervals = [];
+    let currentDateTime = startDateTime;
+
+    while (currentDateTime < endDateTime) {
+      const nextDateTime = new Date(currentDateTime.getTime() + 30 * 60000); // 30 minutes in milliseconds
+      intervals.push({
+        startDate: currentDateTime.toISOString().split('T')[0],
+        startTime: currentDateTime.toISOString().split('T')[1].slice(0, -8),
+        endDate: nextDateTime.toISOString().split('T')[0],
+        endTime: nextDateTime.toISOString().split('T')[1].slice(0, -8),
+      });
+      currentDateTime = nextDateTime;
+    }
+
+    // Return the result
+    res.json({ intervals });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+// another method 3
+
+app.post('/calculateDuration/3', (req, res) => {
+  try {
+    const { startDate, endDate, startTime, endTime, duration } = req.body;
+
+    // Validate input
+    if (!startDate || !endDate || !startTime || !endTime || !duration) {
+      throw new Error('Missing required fields');
+    }
+
+    // Convert date and time strings to Date objects using moment
+    const startDateTime = moment(`${startDate} ${startTime}`, 'YYYY-MM-DD h:mm A');
+    const endDateTime = moment(`${endDate} ${endTime}`, 'YYYY-MM-DD h:mm A');
+
+    // Calculate duration in milliseconds
+    const durationInMilliseconds = duration * 60 * 1000; // Convert duration to milliseconds
+
+    // Split time range into 30-minute intervals
+    const intervals = [];
+    let currentDateTime = startDateTime.clone();
+
+    while (currentDateTime.isBefore(endDateTime)) {
+      const nextDateTime = currentDateTime.clone().add(30, 'minutes');
+      intervals.push({
+        startDate: currentDateTime.format('YYYY-MM-DD'),
+        startTime: currentDateTime.format('h:mm A'),
+        endDate: nextDateTime.format('YYYY-MM-DD'),
+        endTime: nextDateTime.format('h:mm A'),
+      });
+      currentDateTime = nextDateTime;
+    }
+
+    // Return the result
+    res.json({ intervals });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+// another method 4
+
+app.post('/calculateDuration/4', (req, res) => {
+  try {
+    const { startDate, endDate, startTime, endTime, duration, breakDuration } = req.body;
+
+    // Validate input
+    if (!startDate || !endDate || !startTime || !endTime || !duration || !breakDuration) {
+      throw new Error('Missing required fields');
+    }
+
+    // Convert date and time strings to Date objects using moment
+    const startDateTime = moment(`${startDate} ${startTime}`, 'YYYY-MM-DD h:mm A');
+    const endDateTime = moment(`${endDate} ${endTime}`, 'YYYY-MM-DD h:mm A');
+
+    // Calculate duration in milliseconds
+    const durationInMilliseconds = duration * 60 * 1000; // Convert duration to milliseconds
+    const breakDurationInMilliseconds = breakDuration * 60 * 1000; // Convert break duration to milliseconds
+
+    // Split time range into intervals with breaks
+    const intervals = [];
+    let currentDateTime = startDateTime.clone();
+
+    while (currentDateTime.isBefore(endDateTime)) {
+      const nextDateTime = currentDateTime.clone().add(duration, 'minutes');
+      intervals.push({
+        startDate: currentDateTime.format('YYYY-MM-DD'),
+        startTime: currentDateTime.format('h:mm A'),
+        endDate: nextDateTime.format('YYYY-MM-DD'),
+        endTime: nextDateTime.format('h:mm A'),
+      });
+      console.log('interval =',intervals)
+      // Add break if not the last interval
+      if (nextDateTime.isBefore(endDateTime)) {
+        const breakStart = nextDateTime.clone();
+        const breakEnd = breakStart.clone().add(breakDuration, 'minutes');
+        intervals.push({
+          startDate: breakStart.format('YYYY-MM-DD'),
+          startTime: breakStart.format('h:mm A'),
+          endDate: breakEnd.format('YYYY-MM-DD'),
+          endTime: breakEnd.format('h:mm A'),
+          break: true,
+        });
+        currentDateTime = breakEnd;
+        
+      } else {
+        currentDateTime = nextDateTime;
+      }
+      console.log("breakintervals =",intervals)
+    }
+
+    // Return the result
+    res.json({ intervals });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+//another method 5
+
+
+app.post('/calculateDuration/5', (req, res) => {
+  try {
+    const { startDate, endDate, startTime, endTime, duration, breakDuration } = req.body;
+
+    // Validate input
+    if (!startDate || !endDate || !startTime || !endTime || !duration || !breakDuration) {
+      throw new Error('Missing required fields');
+    }
+
+    // Convert date and time strings to Date objects using moment
+    const startDateTime = moment(`${startDate} ${startTime}`, 'YYYY-MM-DD h:mm A');
+    const endDateTime = moment(`${endDate} ${endTime}`, 'YYYY-MM-DD h:mm A');
+
+    // Calculate duration in milliseconds
+    const durationInMilliseconds = duration * 60 * 1000; // Convert duration to milliseconds
+    const breakDurationInMilliseconds = breakDuration * 60 * 1000; // Convert break duration to milliseconds
+
+    // Split time range into intervals with breaks
+    const intervals = [];
+    let currentDateTime = startDateTime.clone();
+
+    while (currentDateTime.isBefore(endDateTime)) {
+      const nextDateTime = currentDateTime.clone().add(duration, 'minutes');
+      intervals.push({
+        startDate: currentDateTime.format('YYYY-MM-DD'),
+        startTime: currentDateTime.format('h:mm A'),
+        endDate: nextDateTime.format('YYYY-MM-DD'),
+        endTime: nextDateTime.format('h:mm A'),
+        breakDuration: breakDurationInMilliseconds / (60 * 1000), // Include break duration in minutes
+      });
+
+      // Add break if not the last interval
+      if (nextDateTime.isBefore(endDateTime)) {
+        const breakStart = nextDateTime.clone();
+        const breakEnd = breakStart.clone().add(breakDuration, 'minutes');
+        intervals.push({
+          startDate: breakStart.format('YYYY-MM-DD'),
+          startTime: breakStart.format('h:mm A'),
+          endDate: breakEnd.format('YYYY-MM-DD'),
+          endTime: breakEnd.format('h:mm A'),
+          break: true,
+          breakDuration: breakDurationInMilliseconds / (60 * 1000), // Include break duration in minutes
+        });
+        currentDateTime = breakEnd;
+      } else {
+        currentDateTime = nextDateTime;
+      }
+    }
+
+    // Return the result
+    res.json({ intervals });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// another method using function
+app.post('/calculateDuration/6', /*calculateIntervals,*/ async (req, res) => {
+  try {
+    const { startDate, endDate, startTime, endTime, duration, breakDuration } = req.body;
+
+    // Use the calculateIntervals function
+    const result = await calculateIntervals(startDate, endDate, startTime, endTime, duration, breakDuration);
   
-      if (!shopkeeper) {
-        return res.status(404).json({ message: "Computer product not found" });
-      }
-  
-      res.status(200).json(shopkeeper);
-    } catch (error) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-  
-
-//apply to all computer product
-
-app.post('/shopkeeper/product/computer/shopkeepercomputerlabel', /* authenticateToken, */ async (req, res) => {
-  try {
-    const { _id, label } = req.body;
-
-    const shopkeeper = await Shopkeeper.findById(_id);
-
-    if (!shopkeeper) {
-      return res.status(404).json({ message: "_id not found" });
-    }
-
-    // Iterate through the computer products and add the label to all of them
-    shopkeeper.products.computer.forEach((product) => {
-      product.label.push(label);
-    });
-
-    await shopkeeper.save();
-
-    res.status(200).json({ message: "Label added to all computer products successfully" });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+    // Send the result back as a response
+    res.json(result);
+        
+  }
+  catch (error) {
+    res.status(400).json({ error: error.message })
   }
 });
 
-
-//arrray filter method using to update label
-
-
-app.post('/shopkeeper/product/computer/addlabel3',/*authenticateToken,*/ async (req, res) => {
-  try {
-    const { _id, label, } = req.body;
-
-    const shopkeeperUpdated = await Shopkeeper.findOneAndUpdate(
-      { _id,},
-      {
-        $push: {
-          'products.computer.$[element].label': label,
-        },
-      },
-      {
-        new: true,
-        arrayFilters: [
-          { 'element._id':req.body._id },
-        ],
-      }
-    );
-
-    res.status(200).json(shopkeeperUpdated);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-//-----------------------------------------
-
-app.post('/shopkeeper/product/computer/addlabel4', /*authenticateToken,*/ async (req, res) => {
-  try {
-    const { _id, label, monitor } = req.body;
-
-    const shopkeeperUpdated = await Shopkeeper.findOneAndUpdate(
-      {
-        _id,
-        'products.computer.[0].monitor': monitor/*{$elemMatch: { monitor: monitor }}*/
-      },
-      {
-        $push: {
-          'products.computer.$[element].label': label,
-        },
-      },
-      {
-        new: true,
-        arrayFilters: [
-          { 'element._id': _id },
-        ],
-      }
-    );
-    console.log(shopkeeperUpdated)
-
-    res.status(200).json(shopkeeperUpdated);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//------------------------------------
-
-app.post('/shopkeeper/product/computer/addlabel5', /*authenticateToken,*/ async (req, res) => {
-  try {
-    const { _id, label } = req.body;
-
-    const shopkeeperUpdated = await Shopkeeper.findOneAndUpdate(
-      { _id, "products.computer.label": { $ne: label } }, // Ensure the label doesn't already exist
-      {
-        $push: {
-          "products.computer.$.label": label, // Use the correct positional operator
-        },
-      },
-      {
-        new: true,
-      }
-    );
-
-    if (!shopkeeperUpdated) {
-      return res.status(404).json({ error: "Shopkeeper not found or label already exists" });
-    }
-
-    res.status(200).json(shopkeeperUpdated);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-
-//--------------------------------------
-
-/*app.post('/shopkeeper/product/computer/addlabel6', async (req, res) => {
-  try {
-    const { _id, label } = req.body;
-
-    const shopkeeper = await Shopkeeper.findOne({ _id });
-
-    if (!shopkeeper) {
-      return res.status(404).json({ error: "Shopkeeper not found" });
-    }
-
-    // Find the index of the computer product you want to update (assuming you have a unique identifier, e.g., modelno)
-    const computerIndex = shopkeeper.products.computer.findIndex(computerProduct => computerProduct.monitor === req.body.monitor);
-
-    if (computerIndex === -1) {
-      return res.status(404).json({ error: "Computer product not found" });
-    }
-
-    // Push the label to the computer product's label array
-    shopkeeper.products.computer[computerIndex].label.push(label);
-
-    // Save the updated document
-    const shopkeeperUpdated = await shopkeeper.save();
-
-    res.status(200).json(shopkeeperUpdated);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});*/
-
-//------------------------------------------------
-
-app.post('/shopkeeper/product/computer/addlabel7', async (req, res) => {
-  try {
-    const { _id, label, monitor } = req.body;
-
-    const shopkeeperUpdated = await Shopkeeper.findOneAndUpdate(
-      { _id },
-      {
-        $push: {
-          'products.computer.$[elem].label': label,
-        },
-      },
-      {
-        new: true,
-        arrayFilters: [{ 'elem.monitor': monitor }],
-      }
-    );
-
-    if (!shopkeeperUpdated) {
-      return res.status(404).json({ error: "Shopkeeper not found or computer product not found" });
-    }
-
-    res.status(200).json(shopkeeperUpdated);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});

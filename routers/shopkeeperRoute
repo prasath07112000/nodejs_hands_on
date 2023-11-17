@@ -1,0 +1,1095 @@
+const express = require('express');
+const router = express.Router();
+const User = require('../schema/user')
+const Shopkeeper = require('../schema/shopkeeper')
+const upload = require('../function/multerconfig')
+const jwt = require('jsonwebtoken');
+const date = require('date-and-time');
+const secretKey = 'my_secret_key';
+const authenticateToken = require('../function/auth');
+module.exports = router;
+
+
+//create a shopkeeper for register
+
+
+router.post('/register', async (req, res) => {
+    try {
+      console.log(req.body);
+      const shopkeeperCreate = await Shopkeeper({
+  
+        shopname: req.body.shopname,
+        ownername: req.body.ownername,
+        email: req.body.email,
+        password: req.body.password,
+        mobile: req.body.mobile,
+        address: req.body.address,
+        timestamp: new Date().toISOString()
+      }).save()
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  // shopkeeper for login
+  
+  
+  router.post('/login', async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.findOne({
+        email: req.body.email,
+        password: req.body.password,
+      });
+  
+      const token = jwt.sign({ _id: shopkeeperCreate._id, email: shopkeeperCreate.email }, secretKey);
+      res.setHeader("token", token)
+      res.status(200).json({ token: token });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //shopkeeper for update record
+  
+  
+  router.post('/update', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.updateOne({
+        _id: req._id
+      }, {
+        $set: {
+          shopname: req.body.shopname,
+          address: req.body.address
+        }
+      })
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //add shopkeeper product for laptop
+  
+  
+  router.post('/product/laptop/add/old', authenticateToken, async (req, res) => {
+    try {
+      //const shopkeeperId = req._id;
+      const shopkeeperCreate = await Shopkeeper.updateOne({
+        _id: req._id,
+        //email: req.email
+      }, {
+        $push: {
+          'products.laptop': {
+            laptopname: req.body.laptopname,
+            modelno: req.body.modelno,
+            systemInformation: req.body.systemInformation,
+          },
+        },
+      },
+        { new: true });
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  // set operator to use laptop update
+  
+  
+  router.post('/product/laptop/set', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.findOneAndUpdate(
+        {
+          _id: req._id,
+          'products.laptop._id': req.body._id // Replace 'products.[0]_id' with 'products.computer._id'
+        },
+        {
+          $set: {
+            'products.laptop.$.laptopname': req.body.laptopname,
+            //'products.laptop.$.modelno': req.body.modelno,
+            //'products.laptop.$.systemInformation': req.body.systemInformation,
+  
+          },
+        },
+        {
+          new: true,
+        }
+      );
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //add shopkeeper product for computer
+  
+  
+  router.post('/product/computer/add/old', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.updateOne({
+        _id: req._id,
+        //'products.computer._id':req.body._id,
+      }, {
+        $push: {
+          'products.computer': {
+            monitor: req.body.monitor,
+            keyboard: req.body.keyboard,
+            cpu: req.body.cpu,
+            mouse: req.body.mouse,
+          },
+        },
+      },
+        { new: true }
+      );
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //set operator to use computrer object update
+  
+  
+  router.post('/product/computer/set', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.findOneAndUpdate(
+        {
+          _id: req._id,
+          'products.computer._id': req.body._id // Replace 'products.[0]_id' with 'products.computer._id'
+        },
+        {
+          $set: {
+            'products.computer.$.monitor': req.body.monitor,
+            //'products.computer.$.keyboard': req.body.keyboard,
+            //'products.computer.$.mouse': req.body.mouse,
+            //'products.computer.$.cpu': req.body.cpu,
+          },
+        },
+  
+        {
+          new: true,
+        }
+      );
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //remove shopkeeper product for laptop
+  
+  
+  router.post('/product/laptop/del/old', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.findOneAndUpdate({
+        _id: req._id
+      }, {
+        $pull: {
+          'products.laptop': {
+            laptopname: req.body.laptopname,
+            modelno: req.body.modelno,
+            systemInformation: req.body.systemInformation,
+          },
+  
+        },
+      });
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //remove shopkeeper product for computer
+  
+  
+  router.post('/product/computer/del/old', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.findOneAndUpdate({
+        _id: req._id
+      }, {
+        $pull: {
+          'products.computer': {
+            monitor: req.body.monitor,
+            keyboard: req.body.keyboard,
+            cpu: req.body.cpu,
+            mouse: req.body.mouse,
+          }
+        }
+      });
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //list for shopkeeper
+  
+  
+  router.post('/list', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperList = await Shopkeeper.find({
+        _id: req._id
+      });
+  
+      res.status(200).json(shopkeeperList);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //list only laptop object from shopkeeper
+  
+  
+  router.post('/list/laptop', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperList = await Shopkeeper.findOne({
+        _id: req._id
+      }, {
+        "products.laptop": 1
+      });
+      
+  
+      res.status(200).json({ message: "listlaptop successfully", data: shopkeeperList.products.laptop });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //list only computer object from shopkeeper
+  
+  
+  router.post('/list/computer', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperList = await Shopkeeper.findOne({
+        _id: req._id,
+      },
+        {
+          'products.computer': 1
+        });
+    //  console.log(shopkeeperList)
+      res.status(200).json(shopkeeperList.products.computer);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //delete for shopkeeper
+  
+  
+  router.post('/del', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperdel = await Shopkeeper.deleteOne(
+        {
+          _id: req._id
+        }
+      );
+      res.status(200).json(shopkeeperdel);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  
+  //shopkeeper for label
+  
+  
+  router.post('/labels', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperLabel = await Shopkeeper.findOneAndUpdate({
+        _id: req._id
+      }, {
+        $push: { labels: { label: req.body.label } }
+      }, {
+        new: true,
+      });
+      res.status(200).json(shopkeeperLabel)
+    } catch (error) {
+      res.status(400).json({ error: error.message })
+    }
+  });
+
+  // upload image or video file in folder
+
+router.post('/upload', authenticateToken, upload/*.single('profile')*/, async (req, res) => {
+    //console.log(req.file);
+    try {
+      const shopkeeperCreate = await Shopkeeper.updateOne({
+        _id: req._id
+      }, {
+        $set: {
+          image: {
+            data: req.file.filename,
+            //data: req.file.buffer,    buffer for memorystorage       
+            contentType: req.file.mimetype
+          },
+        },
+      });
+  
+     // console.log(req.file.buffer)
+      res.status(200).json({
+        message: "upload successfully", shopkeeperCreate,/* binarydata:req.file.buffer*/
+        // profile_url: `http://localhost:3000/profile/${req.file.filename}`
+      });
+    }
+    catch (error) {
+      if (!req.file) {
+        return res.status(400).send('No file uploaded.');
+      }
+    }
+  });
+  
+
+  //but it is normal method not using array method
+  // just add label data in computer array label
+
+
+router.post('/product/computer/label', /*authenticateTokenm,*/ async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.updateOne({
+        _id: req._id
+      }, {
+        $push: {
+          'products.computer': {
+            label: req.body.label
+          },
+        },
+      },
+        { new: true }
+      );
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+ //Array fillter concept is use for shopkeeper to add label array 
+//arrray filter method using to update label
+//----------------------add label array in computer product array--------------------------
+
+router.post('/product/computer/addlabel7', async (req, res) => {
+    try {
+      const { _id, label, monitor } = req.body;
+  
+      const shopkeeperUpdated = await Shopkeeper.findOneAndUpdate(
+        { _id },
+        {
+          $push: {
+            'products.computer.$[elem].label': label,
+          },
+        },
+        {
+          new: true,
+          arrayFilters: [{ 'elem.monitor': monitor }],
+        }
+      );
+  
+      if (!shopkeeperUpdated) {
+        return res.status(404).json({ error: "Shopkeeper not found or computer product not found" });
+      }
+  
+      res.status(200).json(shopkeeperUpdated);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  //-------------another method and using both set and push-------------
+  router.post('/product/computer/addlabel', /*authenticateToken,*/ async (req, res) => {
+    try {
+      //const { _id, monitor, labelToUpdate } = req.body;
+  
+      const shopkeeperCreate = await Shopkeeper.findOneAndUpdate(
+        {
+          //_id:req.body._id,label: req.body.label,monitor: req.body.monitor
+          'products.computer': { $elemMatch: { _id: req.body._id } },
+        },
+        {
+          $set: {
+            'products.computer.$[elem].monitor': req.body.monitor,
+          },
+  
+          $push: {
+            'products.computer.$[elem].label': req.body.label,
+          },
+        },
+        {
+          new: true,
+          arrayFilters: [{ 'elem._id': req.body._id }],
+        }
+      );
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+ 
+  
+  
+  //-----------------add loptop for changed schema------------------
+  
+  
+  router.post('/product/laptopnew/add', authenticateToken, async (req, res) => {
+    try {
+      //const shopkeeperId = req._id;
+      const shopkeeperCreate = await Shopkeeper.updateOne({
+        _id: req._id,
+        //email: req.email
+      }, {
+        $push: {
+          'products.laptop': {
+            laptopName: req.body.laptopName,
+            laptopPrice: req.body.laptopPrice,
+            laptopSpecification: req.body.laptopSpecification,
+          },
+        },
+      },
+        { new: true });
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //--------------------add computer for changed schema------------------
+  
+  
+  router.post('/product/computernew/add', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.updateOne({
+        _id: req._id,
+        //'products.computer._id':req.body._id,
+      }, {
+        $push: {
+          'products.computer': {
+            computerName: req.body.computerName,
+            computerPrice: req.body.computerPrice,
+            computerSpecification: req.body.computerSpecification,
+          },
+        },
+      },
+        { new: true }
+      );
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //------------------change status for laptop product--------------------
+  
+  
+  router.post('/product/laptopstatus/set', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.findOneAndUpdate(
+        {
+          _id: req._id,
+          //'products.laptop._id': req.body._id // Replace 'products.[0]_id' with 'products.computer._id'
+          
+        },
+        {
+          $set: {
+            'products.laptop.$[elem].status': false,
+            //'products.laptop.$.laptopName': req.body.laptopName,
+            //'products.laptop.$.systemInformation': req.body.systemInformation,
+  
+          },
+        },
+        {
+          new: true,
+          arrayFilters: [{ 'elem.laptopName': req.body.laptopName }],
+        }
+      );
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+
+  //------------------change status for computer product--------------------
+  
+  
+  router.post('/product/computerstatus/set', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.findOneAndUpdate(
+        {
+          _id: req._id,
+          //'products.laptop._id': req.body._id // Replace 'products.[0]_id' with 'products.computer._id'
+          
+        },
+        {
+          $set: {
+            'products.computer.$[elem].status': false,
+            //'products.computer.$[elem].computerName': req.body.computerName,
+            //'products.laptop.$.systemInformation': req.body.systemInformation,
+  
+          },
+        },
+        {
+          new: true,
+          arrayFilters: [{ 'elem.computerName': req.body.computerName }],
+        }
+      );
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+
+//new schema laptop product to delete
+
+  
+  router.post('/product/laptop/del', authenticateToken , async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.findOneAndUpdate({
+        _id: req._id
+      }, {
+        $pull: {
+          'products.laptop': {
+            laptopName: req.body.laptopName,
+           // laptopPrice: req.body.laptopPrice,
+           // laptopSpecification: req.body.laptopSpecification,
+          },
+  
+        },
+      },{ new: true });
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  
+  //remove shopkeeper product for computer new schema
+  
+  
+  router.post('/product/computer/del', authenticateToken, async (req, res) => {
+    try {
+      const shopkeeperCreate = await Shopkeeper.findOneAndUpdate({
+        _id: req._id
+      }, {
+        $pull: {
+          'products.computer': {
+            computerName: req.body.computerName,
+            //computerPrice: req.body.computerPrice,
+           // computerSpecification: req.body.computerSpecification,
+          }
+        }
+      },{new: true});
+  
+      res.status(200).json(shopkeeperCreate);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+
+ //------------only true status laptop and computer will show------------
+
+
+ 
+
+// Route to get status true data for a particular shopkeeper by ID using a POST request
+//this only show laptop product
+
+router.post("/products/laptop/status/true", authenticateToken, async (req, res) => {
+  //const shopkeeperId = req.params.id;
+
+  try {
+    const shopkeeper = await Shopkeeper.findById({_id:req._id});
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: "Shopkeeper not found" });
+    }
+
+    const activeLaptopProducts = shopkeeper.products.laptop.filter(product => product.status === true);
+  //const activeComputerProducts = shopkeeper.products.computer.filter(product => product.status === true);
+
+    res.json({
+      shopname: shopkeeper.shopname,
+      ownername: shopkeeper.ownername,
+      email: shopkeeper.email,
+      mobile: shopkeeper.mobile,
+      address: shopkeeper.address,
+      activeLaptopProducts,
+      //activeComputerProducts,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+//----------- Route to get status true data for a particular shopkeeper by ID using a POST request ----------
+// ========== this only show computer product ===================
+
+router.post("/products/computer/status/true", authenticateToken, async (req, res) => {
+  //const shopkeeperId = req.params.id;
+
+  try {
+    const shopkeeper = await Shopkeeper.findById({_id:req._id});
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: "Shopkeeper not found" });
+    }
+
+   // const activeLaptopProducts = shopkeeper.products.laptop.filter(product => product.status === true);
+    const activeComputerProducts = shopkeeper.products.computer.filter(product => product.status === true);
+
+    res.json({
+      shopname: shopkeeper.shopname,
+      ownername: shopkeeper.ownername,
+      email: shopkeeper.email,
+      mobile: shopkeeper.mobile,
+      address: shopkeeper.address,
+     // activeLaptopProducts,
+      activeComputerProducts,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+//----------- Route to get status true data for a particular shopkeeper by ID using a POST request ----------
+// ========== this show both laptop and computer product ===================
+
+router.post("/active-shopkeeper-products", authenticateToken, async (req, res) => {
+  //const shopkeeperId = req.params.id;
+
+  try {
+    const shopkeeper = await Shopkeeper.findById({_id:req._id});
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: "Shopkeeper not found" });
+    }
+
+    const activeLaptopProducts = shopkeeper.products.laptop.filter(product => product.status === true);
+    const activeComputerProducts = shopkeeper.products.computer.filter(product => product.status === true);
+
+    res.json({
+      shopname: shopkeeper.shopname,
+      ownername: shopkeeper.ownername,
+      email: shopkeeper.email,
+      mobile: shopkeeper.mobile,
+      address: shopkeeper.address,
+      activeLaptopProducts,
+      activeComputerProducts,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+//-------------shopkeeper product only show false status product----------------
+//=======================this only shoe laptop product==================
+
+
+router.post("/products/laptop/status/false", authenticateToken, async (req, res) => {
+  //const shopkeeperId = req.params.id;
+
+  try {
+    const shopkeeper = await Shopkeeper.findById({_id:req._id});
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: "Shopkeeper not found" });
+    }
+
+    const activeLaptopProducts = shopkeeper.products.laptop.filter(product => product.status === false);
+  //const activeComputerProducts = shopkeeper.products.computer.filter(product => product.status === true);
+
+    res.json({
+      shopname: shopkeeper.shopname,
+      ownername: shopkeeper.ownername,
+      email: shopkeeper.email,
+      mobile: shopkeeper.mobile,
+      address: shopkeeper.address,
+      activeLaptopProducts,
+      //activeComputerProducts,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+//----------- Route to get status false data for a particular shopkeeper by ID using a POST request ----------
+// ========== this only show computer product ===================
+
+router.post("/products/computer/status/false", authenticateToken, async (req, res) => {
+  //const shopkeeperId = req.params.id;
+
+  try {
+    const shopkeeper = await Shopkeeper.findById({_id:req._id});
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: "Shopkeeper not found" });
+    }
+
+   // const activeLaptopProducts = shopkeeper.products.laptop.filter(product => product.status === true);
+    const activeComputerProducts = shopkeeper.products.computer.filter(product => product.status === false);
+
+    res.json({
+      shopname: shopkeeper.shopname,
+      ownername: shopkeeper.ownername,
+      email: shopkeeper.email,
+      mobile: shopkeeper.mobile,
+      address: shopkeeper.address,
+     // activeLaptopProducts,
+      activeComputerProducts,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+//----------- Route to get status false data for a particular shopkeeper by ID using a POST request ----------
+// ========== this show both laptop and computer product ===================
+
+router.post("/deactive-shopkeeper-products", authenticateToken, async (req, res) => {
+  //const shopkeeperId = req.params.id;
+
+  try {
+    const shopkeeper = await Shopkeeper.findById({_id:req._id});
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: "Shopkeeper not found" });
+    }
+
+    const activeLaptopProducts = shopkeeper.products.laptop.filter(product => product.status === false);
+    const activeComputerProducts = shopkeeper.products.computer.filter(product => product.status === false);
+
+    res.json({
+      shopname: shopkeeper.shopname,
+      ownername: shopkeeper.ownername,
+      email: shopkeeper.email,
+      mobile: shopkeeper.mobile,
+      address: shopkeeper.address,
+      activeLaptopProducts,
+      activeComputerProducts,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+/*
+// Route to get status true data for a particular shopkeeper by ID using a POST request
+router.post("/active-shopkeeper/:id", async (req, res) => {
+  const shopkeeperId = req.params.id;
+
+  try {
+    const shopkeeper = await Shopkeeper.findById(shopkeeperId);
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: "Shopkeeper not found" });
+    }
+
+    const activeLaptopProducts = shopkeeper.products.laptop.filter(product => product.status === true);
+    const activeComputerProducts = shopkeeper.products.computer.filter(product => product.status === true);
+
+    res.json({
+      shopname: shopkeeper.shopname,
+      ownername: shopkeeper.ownername,
+      email: shopkeeper.email,
+      mobile: shopkeeper.mobile,
+      address: shopkeeper.address,
+      activeLaptopProducts,
+      activeComputerProducts,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+*/
+
+
+
+//------------encode the laptop product and decode the laptop product
+
+//----------------encode the laptop product-----------------------
+
+
+router.post('/product/laptopnew/add/encode', authenticateToken, async (req, res) => {
+  try {
+    const { laptopName, laptopPrice, laptopSpecification } = req.body;
+
+    // Encode relevant fields to base64
+    const encodedLaptopName = Buffer.from(laptopName).toString('base64');
+    const encodedLaptopPrice = Buffer.from(laptopPrice).toString('base64');
+    const encodedLaptopSpecification = Buffer.from(laptopSpecification).toString('base64');
+
+    // Create the new laptop product
+    const newLaptopProduct = {
+      laptopName: encodedLaptopName,
+      laptopPrice: encodedLaptopPrice,
+      laptopSpecification: encodedLaptopSpecification,
+    };
+
+    // Update the shopkeeper with the new laptop product
+    const updatedShopkeeper = await Shopkeeper.findOneAndUpdate(
+      { _id: req._id },
+      { $push: { 'products.laptop': newLaptopProduct } },
+      { new: true }
+    );
+
+    res.status(200).json(updatedShopkeeper);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+//----------------- another decode laptop product-------------
+
+
+router.post('/product/laptop/new/decode', authenticateToken, async (req, res) => {
+  try {
+    const laptopId = req.body._id;
+
+    // Find the shopkeeper by their ID
+    const shopkeeper = await Shopkeeper.findById(req._id);
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: 'Shopkeeper not found' });
+    }
+
+    // Find the laptop product by its ID
+    const laptopProduct = shopkeeper.products.laptop.id(laptopId);
+
+    if (!laptopProduct) {
+      return res.status(404).json({ message: 'Laptop product not found' });
+    }
+
+    // Decode relevant fields from base64
+    const decodedLaptopName = Buffer.from(laptopProduct.laptopName, 'base64').toString('utf8');
+    const decodedLaptopPrice = Buffer.from(laptopProduct.laptopPrice, 'base64').toString('utf8');
+    const decodedLaptopSpecification = Buffer.from(laptopProduct.laptopSpecification, 'base64').toString('utf8');
+
+    // Create an object with decoded data
+    const decodedLaptop = {
+      laptopName: decodedLaptopName,
+      laptopPrice: decodedLaptopPrice,
+      laptopSpecification: decodedLaptopSpecification,
+      status: laptopProduct.status,
+      count: laptopProduct.count,
+      _id: laptopProduct._id,
+    };
+
+    res.status(200).json(decodedLaptop);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//-----------------------------------------------------------------------------------------------
+
+router.post('/product/laptopnew/add/encode/1', authenticateToken, async (req, res) => {
+  try {
+   
+   
+    // Update the shopkeeper with the new laptop product
+    const shopkeeper = await Shopkeeper.findOne(
+      { _id: req._id });
+        const laptopProductsArray = shopkeeper.products.laptop;
+
+       const laptopProductsJSON = JSON.stringify(laptopProductsArray);
+
+        // Encode relevant fields to base64
+      const encodedLaptopProducts = Buffer.from(laptopProductsJSON).toString('base64') ;
+      /*const updatedShopkeeper = await Shopkeeper.findOneAndUpdate(
+        { _id: req._id },
+        { 'products.laptop': encodedLaptopProducts },
+        { new: true }
+      );*/
+  
+      res.status(200).json(encodedLaptopProducts);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+
+//--------------------encode all laptop product---------------
+
+
+router.post('/product/laptopnew/add/encode/2', authenticateToken, async (req, res) => {
+  try {
+    // Fetch the shopkeeper from the database
+    const shopkeeper = await Shopkeeper.findOne({ _id: req._id });
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: 'Shopkeeper not found' });
+    }
+
+    // Extract the laptop products array from the shopkeeper
+    const laptopProductsArray = shopkeeper.products.laptop;
+
+    // Serialize the array of laptop products to JSON
+    const laptopProductsJSON = JSON.stringify(laptopProductsArray);
+
+    // Encode the JSON string to create a single token
+    const encodedLaptopProducts = Buffer.from(laptopProductsJSON).toString('base64');
+    const laptopProductToken = encodedLaptopProducts;
+/*
+    // Update the shopkeeper with the encoded token
+    const updatedShopkeeper = await Shopkeeper.findOne(
+      { _id: req._id },
+      { 'products.laptop': encodedLaptopProducts },
+      { new: true }
+    );
+*/
+    res.status(200).json(laptopProductToken);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+//--------------- decode all laptop product -------------------
+
+
+router.post('/product/laptopnew/decode/2', /*authenticateToken,*/ async (req, res) => {
+  try {
+    // Fetch the shopkeeper from the database
+    const laptopProductToken = "W3sibGFwdG9wTmFtZSI6ImFjZXIgbGFwIiwibGFwdG9wUHJpY2UiOiI2MDAwMCIsImxhcHRvcFNwZWNpZmljYXRpb24iOiI1MTIgZ2Igc3NkIiwic3RhdHVzIjpmYWxzZSwiY291bnQiOjksIl9pZCI6IjY1MzhjYWVkNGE5ZjJlZWRlN2NhNmIxMSJ9LHsibGFwdG9wTmFtZSI6ImRlbGwgbGFwIiwibGFwdG9wUHJpY2UiOiI2MDAwMCIsImxhcHRvcFNwZWNpZmljYXRpb24iOiI1MTIgZ2Igc3NkIiwic3RhdHVzIjp0cnVlLCJjb3VudCI6MTAsIl9pZCI6IjY1MzhjYWY5NGE5ZjJlZWRlN2NhNmIxMyJ9LHsibGFwdG9wTmFtZSI6ImhwIGxhcCIsImxhcHRvcFByaWNlIjoiNjAwMDAiLCJsYXB0b3BTcGVjaWZpY2F0aW9uIjoiNTEyIGdiIHNzZCIsInN0YXR1cyI6dHJ1ZSwiY291bnQiOjEwLCJfaWQiOiI2NTM4Y2IwOTRhOWYyZWVkZTdjYTZiMTUifV0=";
+
+/*
+    const shopkeeper = await Shopkeeper.findOne({ _id: req._id });
+
+    if (!shopkeeper) {
+      return res.status(404).json({ message: 'Shopkeeper not found' });
+    }
+*/
+    // Retrieve the encoded laptop products token
+    const encodedLaptopProducts = laptopProductToken; // Assuming you saved the token with this name
+
+    // Decode the token to retrieve the JSON string
+    const laptopProductsJSON = Buffer.from(encodedLaptopProducts, 'base64').toString('utf8');
+
+    // Parse the JSON string back to an array of laptop products
+    const laptopProductsArray = JSON.parse(laptopProductsJSON);
+
+    res.status(200).json(laptopProductsArray);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+//startDate And endDate
+
+/*
+router.post('/check/start&end/dateandtime', async (req,res) => {
+
+  try{
+  const startDate = "20231001"; // Assuming this format is "YYYYMMDD"
+  const endDate = "20231130"; // Assuming this format is "YYYYMMDD"
+  
+
+  function isCurrentDateInRange(startDate, endDate) {
+  const now = new Date();
+  const start = date.parse(startDate, "YYYYMMDD");
+  const end = date.parse(endDate, "YYYYMMDD");
+  return date.isSameOrAfter(now, start) && date.isSameOrBefore(now, end);
+}
+
+// Function to calculate the time interval between two dates
+function calculateTimeInterval(startDate, endDate) {
+  const start = date.parse(startDate, "YYYYMMDD");
+  const end = date.parse(endDate, "YYYYMMDD");
+  const interval = date.subtract(end, start).toDays();
+  return interval;
+}
+
+
+if (isCurrentDateInRange(startDate, endDate)) {
+  console.log("The current date is within the specified date range.");
+} else {
+  console.log("The current date is outside the specified date range.");
+}
+
+ const interval = calculateTimeInterval(startDate, endDate);
+ console.log(`The interval between startDate and endDate is ${interval} days.`);
+
+  }
+  catch(error){
+    res.status(400).json({ error: error.message });
+
+  }
+});
+*/
+
+
+// using timestamp to show data
+
+
+router.post('/timestamp/show', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.body;
+
+    const shopkeepers = await Shopkeeper.find({
+       timestamp: { $gte: startDate, $lte: endDate }
+        
+      // timestamp: { $gte: new Date(startDate).toISOString(), $lte: new Date(endDate).toISOString() }
+    });
+    
+    res.json(shopkeepers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+//show particular data using timestamp
+
+
+router.post('/timestamp/show/ownername', async (req, res) => {
+  try {
+    const { startDate, endDate, ownername } = req.body;
+
+    const shopkeepers = await Shopkeeper.find({
+      ownername,
+      timestamp: { $gte: startDate, $lte: endDate }
+        
+      // timestamp: { $gte: new Date(startDate).toISOString(), $lte: new Date(endDate).toISOString() }
+    });
+    
+    res.json(shopkeepers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
