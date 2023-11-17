@@ -21,10 +21,7 @@ const shopkeeperSchema = mongoose.Schema({
     type: String,
   },
   startDate:{
-    type: Number,
-  },
-  endDate:{
-    type: Number,
+    type: String,
   },
   image: {
     data: String,

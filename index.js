@@ -18,6 +18,7 @@ const upload = require('./function/multerconfig')
 //const storage = multer.memoryStorage();
 //const upload = multer( {storage} )
 const Shopkeeper = require('./schema/shopkeeper'); // Import your User model
+const CalculationResult = require('./schema/CalculationResult');
 const authenticateToken = require('./function/auth');
 const calculateIntervals = require('./function/date&time');
 const shopkeeper = require('./schema/shopkeeper');
@@ -656,7 +657,10 @@ app.post('/calculateDuration/5', (req, res) => {
   }
 });
 
+
 // another method using function
+
+
 app.post('/calculateDuration/6', /*calculateIntervals,*/ async (req, res) => {
   try {
     const { startDate, endDate, startTime, endTime, duration, breakDuration } = req.body;
@@ -672,4 +676,38 @@ app.post('/calculateDuration/6', /*calculateIntervals,*/ async (req, res) => {
     res.status(400).json({ error: error.message })
   }
 });
+
+
+// startDate and endDate to store in db
+
+
+app.post('/calculateDuration/db', /*calculateIntervals,*/ async (req, res) => {
+  try {
+    const { startDate, endDate, startTime, endTime, duration, breakDuration } = req.body;
+
+    // Use the calculateIntervals function
+    const result = await calculateIntervals(startDate, endDate, startTime, endTime, duration, breakDuration);
+  
+    const newResult = new CalculationResult({
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      duration,
+      breakDuration,
+      calculatedData: result,
+      // Other properties from the 'result' object can be added if needed
+    }).save();
+
+    //const savedResult = await newResult.save(); // Save the result into the database
+
+    // Send the saved result back as a response
+    res.json(newResult);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+
 
